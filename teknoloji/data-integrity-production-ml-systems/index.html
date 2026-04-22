@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Integrity in Production ML Systems | e-Siber</title>
+    <meta name="description" content="How to treat production ML artifacts with the same integrity discipline as security-critical code. SHA-256, pinned versions, signed pickles, and audit trails.">
+    <meta name="keywords" content="ML security, pickle safety, model integrity, SHA-256, supply chain security, ML artifact signing">
+    <link rel="canonical" href="https://e-siber.com/teknoloji/data-integrity-production-ml-systems/">
+    <meta property="og:title" content="Data Integrity in Production ML Systems">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://e-siber.com/teknoloji/data-integrity-production-ml-systems/">
+    <style>
+        :root { --bg: #0b0d10; --card: #15181d; --border: #262a30; --text: #e6e6e6; --muted: #8b8d92; --accent: #5ac8fa; --warn: #ff9500; --danger: #ff3b30; --code-bg: #0d1117; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.8; }
+        .container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+        nav { border-bottom: 1px solid var(--border); background: #0a0b0e; padding: 16px 0; position: sticky; top: 0; z-index: 10; }
+        nav .container { display: flex; justify-content: space-between; align-items: center; }
+        nav .brand { font-weight: 800; font-size: 18px; color: var(--text); text-decoration: none; letter-spacing: -0.3px; }
+        nav .brand span { color: var(--accent); }
+        nav .links a { color: var(--muted); margin-left: 22px; font-size: 14px; text-decoration: none; }
+        nav .links a:hover { color: var(--text); }
+        article { padding: 48px 0 60px; }
+        .category { color: var(--accent); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; display: block; }
+        h1 { font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 16px; letter-spacing: -0.5px; }
+        .meta { color: var(--muted); font-size: 14px; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+        h2 { font-size: 24px; font-weight: 700; margin: 40px 0 16px; }
+        h3 { font-size: 18px; font-weight: 700; margin: 28px 0 12px; color: var(--text); }
+        p { margin-bottom: 16px; color: #d0d0d0; }
+        ul, ol { margin: 0 0 16px 24px; }
+        li { margin-bottom: 6px; color: #d0d0d0; }
+        a { color: var(--accent); }
+        code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'SF Mono', Monaco, monospace; color: #7ee1ff; }
+        pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px; overflow-x: auto; margin: 18px 0; }
+        pre code { background: none; padding: 0; color: #c6d0d9; font-size: 13px; line-height: 1.6; }
+        strong { color: var(--text); }
+        .alert { background: #1f1612; border-left: 3px solid var(--warn); padding: 16px 20px; margin: 24px 0; border-radius: 0 8px 8px 0; }
+        .alert strong { color: var(--warn); }
+        .update-note { background: #121a22; border: 1px solid #1d2e3e; border-radius: 8px; padding: 16px 20px; margin: 24px 0; font-size: 14px; color: var(--muted); }
+        table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 14px; }
+        th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); color: #d0d0d0; }
+        th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        footer { border-top: 1px solid var(--border); padding: 30px 24px; text-align: center; color: var(--muted); font-size: 13px; margin-top: 40px; }
+        footer a { color: var(--accent); }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="/" class="brand">e-<span>Siber</span></a>
+            <div class="links">
+                <a href="/">Home</a>
+                <a href="/guvenlik/">Security</a>
+                <a href="/teknoloji/">Technology</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <article>
+            <span class="category">Technology</span>
+            <h1>Data Integrity in Production ML Systems</h1>
+            <div class="meta">Published April 2026 &middot; 12 min read</div>
+
+            <p>Machine learning teams came from a research culture. The artifact of research is a notebook and a metric on a slide. The artifact of production is a running service that takes real input and emits real decisions to real users. The security engineering discipline around that second artifact &mdash; integrity, provenance, auditability &mdash; is usually missing. In most ML pipelines, a pickle file appears in an S3 bucket, some CI job grabs it, and it ends up deserialized in a process with network access. That is not how we&apos;d handle a binary in any other part of the stack.</p>
+
+            <p>This post is about treating ML artifacts with the same discipline that any security-conscious team applies to code. The threats are different &mdash; you aren&apos;t usually fighting remote exploitation of the model itself, although that exists &mdash; but the controls are the same: hash everything, pin versions, sign releases, log provenance, and fail loudly when invariants break.</p>
+
+            <h2>Threat Model</h2>
+
+            <p>Not every deployment needs the full stack of controls. Start by naming what you&apos;re defending against:</p>
+
+            <table>
+                <tr><th>Threat</th><th>Who cares</th></tr>
+                <tr><td>Silent model corruption (bad training run, data leak, label drift)</td><td>Every production team</td></tr>
+                <tr><td>Supply-chain attack on a dependency (sklearn, xgboost, torch)</td><td>Every team</td></tr>
+                <tr><td>Malicious pickle in an artifact store</td><td>Teams that deserialize pickles from shared storage</td></tr>
+                <tr><td>Training data poisoning</td><td>Teams with external-contributed training data</td></tr>
+                <tr><td>Adversarial inputs at inference</td><td>Security-critical classifiers</td></tr>
+                <tr><td>Model theft / weight exfiltration</td><td>Teams whose model IS the product</td></tr>
+            </table>
+
+            <p>The first three apply to essentially everyone. Let&apos;s focus on controls for those.</p>
+
+            <h2>1. Hash Every Artifact at Publish Time and Verify at Load Time</h2>
+
+            <p>Pickle deserialization is remote code execution by design. The Python <code>pickle</code> module is explicitly documented as unsafe to load from untrusted sources. In practice &quot;untrusted&quot; means &quot;any source whose bit-for-bit integrity you cannot verify.&quot;</p>
+
+            <p>The minimum viable control: publish a SHA-256 with every artifact and verify on load.</p>
+
+            <pre><code>import hashlib, pickle, json, pathlib
+
+ARTIFACT_DIR = pathlib.Path(&quot;/opt/models&quot;)
+
+def sha256(path: pathlib.Path) -&gt; str:
+    h = hashlib.sha256()
+    with path.open(&quot;rb&quot;) as f:
+        for chunk in iter(lambda: f.read(65536), b&quot;&quot;):
+            h.update(chunk)
+    return h.hexdigest()
+
+def publish(name: str, model_obj) -&gt; dict:
+    p = ARTIFACT_DIR / f&quot;{name}.pkl&quot;
+    with p.open(&quot;wb&quot;) as f:
+        pickle.dump(model_obj, f)
+    manifest = {
+        &quot;name&quot;: name,
+        &quot;sha256&quot;: sha256(p),
+        &quot;size_bytes&quot;: p.stat().st_size,
+        &quot;published_at&quot;: __import__(&quot;time&quot;).time(),
+    }
+    (ARTIFACT_DIR / f&quot;{name}.manifest.json&quot;).write_text(json.dumps(manifest))
+    return manifest
+
+def load(name: str, expected_sha256: str):
+    p = ARTIFACT_DIR / f&quot;{name}.pkl&quot;
+    actual = sha256(p)
+    if actual != expected_sha256:
+        raise RuntimeError(
+            f&quot;SHA-256 mismatch on {name}: expected {expected_sha256}, got {actual}&quot;
+        )
+    with p.open(&quot;rb&quot;) as f:
+        return pickle.load(f)</code></pre>
+
+            <p>The <code>expected_sha256</code> comes from a separate, write-restricted source &mdash; your service config, a signed manifest, an environment variable injected by CI. Never from the same bucket the artifact lives in. An attacker who can rewrite one file can rewrite two.</p>
+
+            <div class="alert">
+                <strong>This is the same discipline as verifying package signatures before <code>apt-get install</code>.</strong> The only reason people skip it for ML is cultural inertia, not any technical barrier.</div>
+
+            <h2>2. Pin Library Versions and Record Them in the Artifact</h2>
+
+            <p>A pickle is a reference to class names, not to bytecode. If you pickle an <code>xgboost.Booster</code> under xgboost 2.0.3 and load it under xgboost 2.1.0, the deserializer calls the 2.1.0 constructor on 2.0.3 bytes. Silent behavior changes. Silently wrong predictions.</p>
+
+            <pre><code>import importlib.metadata, sys, pickle
+
+class VersionedArtifact:
+    def __init__(self, payload, deps: list[str]):
+        self.payload = payload
+        self.env = {
+            &quot;python&quot;: sys.version,
+            &quot;deps&quot;: {
+                d: importlib.metadata.version(d) for d in deps
+            },
+        }
+
+# Publish:
+art = VersionedArtifact(
+    payload=my_booster,
+    deps=[&quot;xgboost&quot;, &quot;numpy&quot;, &quot;scikit-learn&quot;],
+)
+with open(&quot;model.pkl&quot;, &quot;wb&quot;) as f:
+    pickle.dump(art, f)
+
+# Load:
+art = pickle.load(open(&quot;model.pkl&quot;, &quot;rb&quot;))
+for dep, ver in art.env[&quot;deps&quot;].items():
+    actual = importlib.metadata.version(dep)
+    if actual != ver:
+        raise RuntimeError(f&quot;Version drift: {dep} trained@{ver} running@{actual}&quot;)
+model = art.payload</code></pre>
+
+            <p>Every inference pod in production should fail loudly the moment a dependency version differs from training. This catches 90% of production-only regressions.</p>
+
+            <h2>3. Build the Pickle in an Isolated Environment</h2>
+
+            <p>If a training job runs on a shared Jupyter instance with arbitrary pip installs, the resulting pickle reflects that noise. Instead, serialize models from a reproducible environment &mdash; a Dockerfile with pinned versions, checked into git, tagged with a content hash.</p>
+
+            <pre><code>FROM python:3.11.8-slim-bookworm@sha256:&lt;digest&gt;
+RUN pip install --no-deps \
+    xgboost==2.0.3 \
+    numpy==1.26.4 \
+    scikit-learn==1.4.1.post1
+COPY train.py /train.py
+ENTRYPOINT [&quot;python&quot;, &quot;/train.py&quot;]</code></pre>
+
+            <p>The digest-pinned base image means even the OS packages are fixed. The training job tags its output with the git SHA of <code>train.py</code> plus the digest of the base image. You can later reconstruct the exact environment that produced any artifact.</p>
+
+            <h2>4. Replace Pickle with a Safe Format Where You Can</h2>
+
+            <p>Pickle is convenient but dangerous. Prefer safer alternatives when the library supports them:</p>
+
+            <ul>
+                <li><strong>XGBoost:</strong> <code>booster.save_model(&quot;model.ubj&quot;)</code> &mdash; UBJSON, portable, no code execution.</li>
+                <li><strong>LightGBM:</strong> <code>model.save_model(&quot;model.txt&quot;)</code> &mdash; plain text.</li>
+                <li><strong>PyTorch:</strong> <code>safetensors</code> for weights; keep the model class in code, not the pickle.</li>
+                <li><strong>scikit-learn:</strong> for some estimators, ONNX export is supported; for others pickle is unavoidable but you can wrap it with the hash check above.</li>
+            </ul>
+
+            <p>The safer formats serialize <em>data</em>, not <em>code</em>. Loading them cannot execute arbitrary functions.</p>
+
+            <h2>5. Log Every Prediction, Sample for Ground Truth</h2>
+
+            <p>This is the ML equivalent of web access logs. Every inference should land in a log with:</p>
+
+            <ul>
+                <li>Model version (the hash from &sect;1)</li>
+                <li>Input features (or a hash if privacy demands it)</li>
+                <li>Predicted output (probability, score, class)</li>
+                <li>Timestamp and request ID</li>
+            </ul>
+
+            <p>Sampling a small percentage of these against eventual ground truth gives you the live calibration report you need to detect silent drift. If the model was 72% accurate during training and is running at 61% accurate in production across 10,000 logged predictions, something changed.</p>
+
+            <pre><code>import json, time, uuid, pathlib
+
+LOG = pathlib.Path(&quot;/var/log/ml/predictions.jsonl&quot;)
+
+def log_prediction(model_sha: str, features: dict, pred: float,
+                   request_id: str | None = None):
+    LOG.parent.mkdir(parents=True, exist_ok=True)
+    record = {
+        &quot;ts&quot;: time.time(),
+        &quot;req&quot;: request_id or str(uuid.uuid4()),
+        &quot;model_sha&quot;: model_sha[:16],
+        &quot;features&quot;: features,
+        &quot;pred&quot;: pred,
+    }
+    with LOG.open(&quot;a&quot;) as f:
+        f.write(json.dumps(record) + &quot;\n&quot;)</code></pre>
+
+            <h2>6. Isolate Deserialization</h2>
+
+            <p>If you absolutely must load a pickle from a shared artifact store, do it in a sandbox, not in your main service process:</p>
+
+            <ul>
+                <li>A dedicated &quot;model loader&quot; process with no network, no filesystem write access, and minimal privileges.</li>
+                <li>The loader exports the model over a Unix socket or gRPC to the serving process.</li>
+                <li>If the pickle is hostile, the blast radius is the loader, not the full service.</li>
+            </ul>
+
+            <p>On Linux, <code>seccomp</code> or <code>firejail</code> can enforce this at the kernel level. On macOS, <code>sandbox-exec</code>. In Kubernetes, a sidecar with restrictive <code>securityContext</code>.</p>
+
+            <h2>Putting It Together: A Deployment Checklist</h2>
+
+            <ol>
+                <li>Artifact built from a digest-pinned Docker image, not a researcher&apos;s laptop.</li>
+                <li>Every dependency version recorded inside the artifact.</li>
+                <li>SHA-256 of the artifact published to a write-restricted manifest.</li>
+                <li>Service config holds the expected SHA-256; service refuses to load on mismatch.</li>
+                <li>Serving process runs with the minimum privileges required.</li>
+                <li>Every prediction is logged with the model&apos;s SHA-256 prefix.</li>
+                <li>A nightly job samples logged predictions against ground truth and emits a calibration report.</li>
+                <li>Any deviation outside thresholds pages a human.</li>
+            </ol>
+
+            <p>None of this is exotic. It&apos;s a direct port of practices that have been standard in server operations for 20 years.</p>
+
+            <h2>Example: What This Looks Like in Production</h2>
+
+            <p>At <a href="https://zenhodl.net?ref=e-siber" rel="noopener">ZenHodl</a>, the model pipeline follows this pattern. Every sport has its own XGBoost ensemble (NFL, NBA, NHL, MLB, tennis, LoL, and others). Each ensemble is retrained weekly in a reproducible Docker environment, serialized with the wrapping class plus its dependency versions, hashed, and pushed to an artifact directory. The serving API loads models by expected SHA-256 from a config the ops team controls; if the hash doesn&apos;t match, the service refuses to start.</p>
+
+            <p>At inference time, every predicted probability is logged with the 16-character model hash prefix. A nightly calibration job replays the logged predictions against resolved outcomes and emits an Expected Calibration Error per sport per reliability bucket. If ECE drifts above a configurable threshold, the prediction API is rolled back to the previous known-good model hash and an alert fires.</p>
+
+            <p>The security engineering discipline buys something concrete: we can answer questions like &quot;what version of what model produced this specific prediction 14 days ago&quot; in constant time, and we can prove that the model that produced it wasn&apos;t quietly swapped out by anyone. That&apos;s the baseline integrity property you want from any decision system &mdash; ML or otherwise.</p>
+
+            <h2>Closing</h2>
+
+            <p>The common thread across the other articles on this site is that the gap between what software claims to do and what it actually does is wide, and most users never measure it. Cloud sync clients read files outside the sync folder. Messengers route plaintext through servers they ask you to trust. SSDs keep the data you told them to delete.</p>
+
+            <p>ML models participate in the same problem. The prediction claims to be well-calibrated. The artifact claims to be the one you trained. The serving pod claims to run the library version you validated. Without verification, those claims are marketing.</p>
+
+            <p>The controls above cost a few hours of engineering per deployment and a nightly job that nobody has to look at unless it fails. The alternative is running a decision system you can&apos;t audit.</p>
+
+        </article>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 e-Siber. Turkish cybersecurity archive, now publishing in English.</p>
+            <p style="margin-top: 8px;">Original 2015 Turkish content preserved where the URL carries editorial value. Current production-ML work at <a href="https://zenhodl.net?ref=e-siber" rel="noopener">ZenHodl</a>.</p>
+        </div>
+    </footer>
+</body>
+</html>

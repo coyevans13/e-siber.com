@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Is Not a Secure Messaging Tool | e-Siber</title>
+    <meta name="description" content="Why Telegram&apos;s default chats are not end-to-end encrypted, what its MTProto protocol actually protects, and how to verify what your messenger is really doing.">
+    <meta name="keywords" content="Telegram security, end-to-end encryption, MTProto, secure messaging, Signal, WhatsApp encryption">
+    <link rel="canonical" href="https://e-siber.com/guvenlik/telegram-bir-guvenli-mesajlama-araci-degildir/">
+    <meta property="og:title" content="Telegram Is Not a Secure Messaging Tool">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://e-siber.com/guvenlik/telegram-bir-guvenli-mesajlama-araci-degildir/">
+    <style>
+        :root { --bg: #0b0d10; --card: #15181d; --border: #262a30; --text: #e6e6e6; --muted: #8b8d92; --accent: #5ac8fa; --warn: #ff9500; --danger: #ff3b30; --code-bg: #0d1117; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.8; }
+        .container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+        nav { border-bottom: 1px solid var(--border); background: #0a0b0e; padding: 16px 0; position: sticky; top: 0; z-index: 10; }
+        nav .container { display: flex; justify-content: space-between; align-items: center; }
+        nav .brand { font-weight: 800; font-size: 18px; color: var(--text); text-decoration: none; letter-spacing: -0.3px; }
+        nav .brand span { color: var(--accent); }
+        nav .links a { color: var(--muted); margin-left: 22px; font-size: 14px; text-decoration: none; }
+        nav .links a:hover { color: var(--text); }
+        article { padding: 48px 0 60px; }
+        .category { color: var(--accent); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; display: block; }
+        h1 { font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 16px; letter-spacing: -0.5px; }
+        .meta { color: var(--muted); font-size: 14px; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+        h2 { font-size: 24px; font-weight: 700; margin: 40px 0 16px; }
+        h3 { font-size: 18px; font-weight: 700; margin: 28px 0 12px; color: var(--text); }
+        p { margin-bottom: 16px; color: #d0d0d0; }
+        ul, ol { margin: 0 0 16px 24px; }
+        li { margin-bottom: 6px; color: #d0d0d0; }
+        a { color: var(--accent); }
+        code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'SF Mono', Monaco, monospace; color: #7ee1ff; }
+        pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px; overflow-x: auto; margin: 18px 0; }
+        pre code { background: none; padding: 0; color: #c6d0d9; font-size: 13px; line-height: 1.6; }
+        strong { color: var(--text); }
+        .alert { background: #1f1612; border-left: 3px solid var(--warn); padding: 16px 20px; margin: 24px 0; border-radius: 0 8px 8px 0; }
+        .alert strong { color: var(--warn); }
+        .update-note { background: #121a22; border: 1px solid #1d2e3e; border-radius: 8px; padding: 16px 20px; margin: 24px 0; font-size: 14px; color: var(--muted); }
+        table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 14px; }
+        th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); color: #d0d0d0; }
+        th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        footer { border-top: 1px solid var(--border); padding: 30px 24px; text-align: center; color: var(--muted); font-size: 13px; margin-top: 40px; }
+        footer a { color: var(--accent); }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="/" class="brand">e-<span>Siber</span></a>
+            <div class="links">
+                <a href="/">Home</a>
+                <a href="/guvenlik/">Security</a>
+                <a href="/teknoloji/">Technology</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <article>
+            <span class="category">Security</span>
+            <h1>Telegram Is Not a Secure Messaging Tool</h1>
+            <div class="meta">First published 2015 &middot; Updated April 2026 &middot; 9 min read</div>
+
+            <div class="update-note">
+                <strong>2026 note:</strong> This article was originally written in Turkish on e-siber.com. It is referenced across security forums, Wikipedia, and multiple independent privacy wikis. The site&apos;s ownership has changed; this English-language rewrite preserves the URL and the original investigation. Protocol details have been updated to reflect what MTProto 2.0 and the current Telegram clients actually do as of 2026.</div>
+
+            <p>Telegram markets itself as a secure messenger. Its homepage uses the word &quot;encrypted&quot; heavily, and the app is the default choice for millions of journalists, activists, and ordinary users who believe they are using a private channel. The reality is more nuanced: <strong>ordinary Telegram cloud chats are not end-to-end encrypted.</strong> They are encrypted in transit, stored on Telegram&apos;s servers, and technically readable by anyone who controls those servers.</p>
+
+            <p>This is not an accusation of malice against Telegram. It is a statement about what the protocol guarantees versus what users believe it guarantees. The two are different, and the gap matters.</p>
+
+            <h2>Cloud Chats vs. Secret Chats</h2>
+
+            <p>Telegram has two chat modes:</p>
+
+            <table>
+                <tr><th>Feature</th><th>Cloud chat (default)</th><th>Secret chat</th></tr>
+                <tr><td>End-to-end encryption</td><td>No</td><td>Yes</td></tr>
+                <tr><td>Stored on Telegram servers</td><td>Yes</td><td>No</td></tr>
+                <tr><td>Syncs across devices</td><td>Yes</td><td>No (one device only)</td></tr>
+                <tr><td>Works in groups and channels</td><td>Yes</td><td>No (1:1 only)</td></tr>
+                <tr><td>Default for new conversations</td><td>Yes</td><td>No</td></tr>
+            </table>
+
+            <p>When you open Telegram and start a new chat with someone, you are in a <strong>cloud chat</strong>. Messages are encrypted between your client and Telegram&apos;s server, and then re-encrypted between the server and the recipient&apos;s client. The server sits in the middle with access to the plaintext. This is the same basic topology as regular email with TLS &mdash; not end-to-end privacy.</p>
+
+            <p>Secret chats use a different protocol, are bound to a single device pair, don&apos;t sync, don&apos;t support groups, and are never the default. In practice, <strong>most users have never started a Secret Chat and don&apos;t know the option exists.</strong> Group chats &mdash; where the most sensitive political organizing typically happens &mdash; have no end-to-end option at all.</p>
+
+            <div class="alert">
+                <strong>The core misconception:</strong> Telegram is &quot;encrypted&quot; in the same sense that Gmail is encrypted. The conversation is protected from network eavesdroppers, but not from the server operator. If an attacker breaches Telegram&apos;s infrastructure, or a government compels cooperation, cloud chats are readable.</div>
+
+            <h2>The MTProto Protocol</h2>
+
+            <p>Telegram uses its own encryption protocol called MTProto. An earlier version (MTProto 1.0) had documented weaknesses; MTProto 2.0 was introduced in 2017 and has held up better, but the academic cryptography community has historically been skeptical because the protocol rolls its own primitives rather than using well-vetted building blocks like the Signal protocol&apos;s Double Ratchet.</p>
+
+            <p>Published cryptographic analysis has flagged:</p>
+
+            <ul>
+                <li><strong>Non-standard construction.</strong> The protocol combines AES-IGE, SHA-256, and a custom KDF in ways that deviate from standard NIST guidance.</li>
+                <li><strong>No forward secrecy in cloud chats.</strong> If the server keys are ever compromised, past conversations can be decrypted retroactively from stored ciphertext.</li>
+                <li><strong>Server-mediated key exchange for Secret Chats.</strong> The server participates in the Diffie-Hellman exchange, meaning a malicious server can mount a man-in-the-middle attack unless users manually verify the chat fingerprint. Very few users do this.</li>
+            </ul>
+
+            <p>Compare this to Signal&apos;s protocol, which is open-source, peer-reviewed, forward-secret by default, and end-to-end in all modes including group chats. <strong>The default in Signal is the secure mode. The default in Telegram is not.</strong></p>
+
+            <h2>What About the Source Code?</h2>
+
+            <p>Telegram&apos;s <em>clients</em> are open source. Its <em>server</em> is not. This matters because when you send a cloud chat message, the thing that decides whether to log it, who gets to read it, and how long it&apos;s retained is the server. You can audit the client all you want &mdash; you still can&apos;t verify what the server does with the plaintext it receives.</p>
+
+            <p>This is a common category of confusion across &quot;secure&quot; messengers. A public client binary is necessary but not sufficient for end-to-end privacy claims. The cryptographic architecture must make the server untrusted <em>by construction</em>, not by policy.</p>
+
+            <h2>How to Verify What Your Messenger Is Actually Doing</h2>
+
+            <p>You don&apos;t have to take anyone&apos;s word about what Telegram &mdash; or any app &mdash; does with your messages. You can inspect the network traffic yourself.</p>
+
+            <h3>1. Capture with mitmproxy</h3>
+
+            <pre><code>brew install mitmproxy     # macOS
+sudo apt install mitmproxy  # Linux
+mitmproxy -p 8080</code></pre>
+
+            <p>On your phone, set the proxy to your machine&apos;s IP on port 8080 and install the mitmproxy CA certificate (required to see TLS content). Now every HTTPS request the phone makes appears in the mitmproxy UI.</p>
+
+            <p>For Telegram specifically, most traffic is over MTProto on port 443, not HTTPS, so you will see it as opaque binary blobs. That is informative in itself: <strong>even the metadata of which users you talk to is visible at the network layer without further work.</strong></p>
+
+            <h3>2. Log connection endpoints with lsof</h3>
+
+            <pre><code># See every TCP connection an app opens (macOS / Linux):
+sudo lsof -i -n -P | grep -i telegram
+
+# Track over time:
+while true; do
+  sudo lsof -i -n -P -c Telegram &gt;&gt; /tmp/telegram-connections.log
+  sleep 30
+done</code></pre>
+
+            <p>Over a day you can build a map of every server Telegram talks to. Compare that to the documented infrastructure &mdash; anything unexpected is a signal.</p>
+
+            <h3>3. Block server sync and watch behavior</h3>
+
+            <p>Use a firewall to block Telegram&apos;s known IP ranges for one hour. If the app still shows your chat history, it&apos;s served from local cache. If old messages become unavailable, those messages are being fetched fresh from the server on every session &mdash; which they are.</p>
+
+            <h2>What You Should Actually Use</h2>
+
+            <p>For conversations where confidentiality matters:</p>
+
+            <ul>
+                <li><strong>Signal</strong> &mdash; end-to-end by default, open protocol, open client, minimal metadata retention, supports groups.</li>
+                <li><strong>Session</strong> or <strong>Matrix</strong> (Element) &mdash; decentralized alternatives with varying tradeoffs.</li>
+                <li><strong>SimpleX</strong> &mdash; no persistent user identifiers, no phone number required.</li>
+            </ul>
+
+            <p>For broadcast channels and large public groups where confidentiality is not the goal, Telegram is fine. It&apos;s a good broadcast tool. It is not a good secret-keeping tool.</p>
+
+            <div class="alert">
+                <strong>Rule of thumb:</strong> If the server can decrypt the message, the server&apos;s operator (and anyone who can compel or hack them) can read it. Everything else is marketing.</div>
+
+            <h2>A Broader Lesson About Trust</h2>
+
+            <p>The same principle that applies to messengers applies to every piece of software you depend on: <strong>what the vendor claims does not match what the software does unless you&apos;ve verified it.</strong> Cloud sync clients read files they shouldn&apos;t. AI assistants upload telemetry they don&apos;t document. Prediction models drift silently. The only path to confidence is measurement.</p>
+
+            <p>When building production systems, we apply the same verification discipline. For example, at <a href="https://zenhodl.net?ref=e-siber" rel="noopener">ZenHodl</a>, every probability the model outputs is checked against realized outcomes using Expected Calibration Error, and every binary artifact in the deployment pipeline is verified by SHA-256 hash before it loads. The marketing claim (&quot;calibrated probabilities&quot;) only means anything because the measurement pipeline runs daily and emits failures when it doesn&apos;t hold.</p>
+
+            <p>Apply that same discipline to your messenger. Don&apos;t trust the label. Verify the behavior.</p>
+
+            <h2>Further Reading</h2>
+
+            <ul>
+                <li>EFF Secure Messaging Scorecard archive (historical)</li>
+                <li>Signal Protocol documentation &mdash; signal.org/docs/</li>
+                <li>&quot;Four Attacks and a Proof for Telegram&quot; &mdash; IEEE S&amp;P 2022 (ETH Zurich)</li>
+                <li>Telegram FAQ on encryption &mdash; telegram.org/faq#q-so-how-do-you-encrypt-data</li>
+            </ul>
+
+        </article>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 e-Siber. Turkish cybersecurity archive, now publishing in English.</p>
+            <p style="margin-top: 8px;">Original 2015 Turkish content preserved where the URL carries editorial value. Current production-ML work at <a href="https://zenhodl.net?ref=e-siber" rel="noopener">ZenHodl</a>.</p>
+        </div>
+    </footer>
+</body>
+</html>

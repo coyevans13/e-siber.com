@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>e-Siber &mdash; Cybersecurity &amp; Production Engineering</title>
+    <meta name="description" content="Cybersecurity, privacy, and production-engineering writing. Original Turkish archive preserved where it carries editorial value; new content in English on ML infrastructure and security.">
+    <meta name="keywords" content="cybersecurity, privacy, production engineering, ML security, data integrity, e-siber">
+    <link rel="canonical" href="https://e-siber.com/">
+    <meta property="og:title" content="e-Siber &mdash; Cybersecurity &amp; Production Engineering">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://e-siber.com/">
+    <style>
+        :root { --bg: #0b0d10; --card: #15181d; --border: #262a30; --text: #e6e6e6; --muted: #8b8d92; --accent: #5ac8fa; --warn: #ff9500; --code-bg: #0d1117; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+        nav { border-bottom: 1px solid var(--border); background: #0a0b0e; padding: 16px 0; position: sticky; top: 0; z-index: 10; }
+        nav .container { display: flex; justify-content: space-between; align-items: center; }
+        nav .brand { font-weight: 800; font-size: 18px; color: var(--text); text-decoration: none; letter-spacing: -0.3px; }
+        nav .brand span { color: var(--accent); }
+        nav .links a { color: var(--muted); margin-left: 22px; font-size: 14px; text-decoration: none; }
+        nav .links a:hover { color: var(--text); }
+        header { padding: 64px 0 36px; border-bottom: 1px solid var(--border); }
+        header h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.6px; margin-bottom: 12px; }
+        header h1 span { color: var(--accent); }
+        header p { color: var(--muted); font-size: 16px; max-width: 640px; }
+        .note { background: #121a22; border: 1px solid #1d2e3e; border-radius: 8px; padding: 16px 20px; margin: 28px 0 0; color: var(--muted); font-size: 14px; }
+        .note strong { color: var(--text); }
+        section { padding: 40px 0; }
+        h2 { font-size: 22px; font-weight: 700; margin-bottom: 20px; }
+        .post { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 24px 26px; margin-bottom: 16px; }
+        .post .cat { color: var(--accent); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; }
+        .post h3 { font-size: 18px; font-weight: 700; margin: 8px 0; }
+        .post h3 a { color: var(--text); text-decoration: none; }
+        .post h3 a:hover { color: var(--accent); }
+        .post .excerpt { color: #c0c2c6; font-size: 14px; }
+        .post .meta { color: var(--muted); font-size: 12px; margin-top: 10px; }
+        footer { border-top: 1px solid var(--border); padding: 30px 24px; text-align: center; color: var(--muted); font-size: 13px; margin-top: 40px; }
+        footer a { color: var(--accent); }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="/" class="brand">e-<span>Siber</span></a>
+            <div class="links">
+                <a href="/">Home</a>
+                <a href="/guvenlik/">Security</a>
+                <a href="/teknoloji/">Technology</a>
+            </div>
+        </div>
+    </nav>
+
+    <header>
+        <div class="container">
+            <h1>e-<span>Siber</span></h1>
+            <p>Cybersecurity, privacy, and production-engineering writing. Long-form posts on how software actually behaves versus how it&rsquo;s marketed.</p>
+            <div class="note">
+                <strong>About this site:</strong> e-siber.com has published security-focused content since 2013. A portion of the archive &mdash; articles still widely cited across Wikipedia, Hacker News, and international tech media &mdash; is preserved at the original URLs in English translation. New material appears under <a href="/teknoloji/">Technology</a>.</div>
+        </div>
+    </header>
+
+    <section>
+        <div class="container">
+            <h2>Recent posts</h2>
+
+            <div class="post">
+                <span class="cat">Technology</span>
+                <h3><a href="/teknoloji/data-integrity-production-ml-systems/">Data Integrity in Production ML Systems</a></h3>
+                <p class="excerpt">Treating ML artifacts with the same discipline as security-critical code. SHA-256 hashes, pinned versions, signed pickles, isolated deserialization, and audit trails for every prediction.</p>
+                <div class="meta">April 2026 &middot; 12 min read</div>
+            </div>
+
+            <div class="post">
+                <span class="cat">Security</span>
+                <h3><a href="/guvenlik/dropbox-accesses-all-the-files-in-your-pc-not-just-sync-folder-and-steals-everything/">Dropbox Accesses Every File on Your PC &mdash; Not Just the Sync Folder</a></h3>
+                <p class="excerpt">An English-language preservation of the 2015 investigation that found Dropbox reading files well outside its sync folder. Includes file-access audit code for macOS, Linux, and Windows.</p>
+                <div class="meta">First published 2015 &middot; Updated April 2026 &middot; 11 min read</div>
+            </div>
+
+            <div class="post">
+                <span class="cat">Security</span>
+                <h3><a href="/guvenlik/telegram-bir-guvenli-mesajlama-araci-degildir/">Telegram Is Not a Secure Messaging Tool</a></h3>
+                <p class="excerpt">Cloud chats are not end-to-end encrypted. Secret Chats are never the default. MTProto has documented weaknesses. What Telegram actually protects, and what to use instead.</p>
+                <div class="meta">First published 2015 &middot; Updated April 2026 &middot; 9 min read</div>
+            </div>
+
+            <div class="post">
+                <span class="cat">Security</span>
+                <h3><a href="/guvenlik/solid-state-diskler-ssd-uzerlerine-kaydedilen-verileri-hicbir-zaman-silmiyorlar/">SSDs Don&apos;t Actually Delete the Data You Think They&apos;re Deleting</a></h3>
+                <p class="excerpt">Wear leveling, over-provisioning, and controller-side compression mean overwritten files on flash storage are usually still recoverable. What <code>nvme format --ses=2</code> actually does, and when to destroy the drive instead.</p>
+                <div class="meta">First published 2015 &middot; Updated April 2026 &middot; 10 min read</div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 e-Siber. Turkish cybersecurity archive, now publishing in English.</p>
+            <p style="margin-top: 8px;">Current production-ML work at <a href="https://zenhodl.net?ref=e-siber" rel="noopener">ZenHodl</a>.</p>
+        </div>
+    </footer>
+</body>
+</html>

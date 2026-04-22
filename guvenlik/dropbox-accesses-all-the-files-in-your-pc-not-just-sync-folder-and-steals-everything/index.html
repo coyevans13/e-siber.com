@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dropbox Accesses Every File on Your PC — Not Just the Sync Folder | e-Siber</title>
+    <meta name="description" content="Analysis showing Dropbox reads files across your entire machine, not only the sync folder. How to audit what files a cloud sync client actually opens, with Python scripts.">
+    <meta name="keywords" content="Dropbox privacy, cloud sync security, file access audit, DLP, data leak prevention">
+    <link rel="canonical" href="https://e-siber.com/guvenlik/dropbox-accesses-all-the-files-in-your-pc-not-just-sync-folder-and-steals-everything/">
+    <meta property="og:title" content="Dropbox Accesses Every File on Your PC">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://e-siber.com/guvenlik/dropbox-accesses-all-the-files-in-your-pc-not-just-sync-folder-and-steals-everything/">
+    <style>
+        :root { --bg: #0b0d10; --card: #15181d; --border: #262a30; --text: #e6e6e6; --muted: #8b8d92; --accent: #5ac8fa; --warn: #ff9500; --danger: #ff3b30; --code-bg: #0d1117; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.8; }
+        .container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+        nav { border-bottom: 1px solid var(--border); background: #0a0b0e; padding: 16px 0; position: sticky; top: 0; z-index: 10; }
+        nav .container { display: flex; justify-content: space-between; align-items: center; }
+        nav .brand { font-weight: 800; font-size: 18px; color: var(--text); text-decoration: none; letter-spacing: -0.3px; }
+        nav .brand span { color: var(--accent); }
+        nav .links a { color: var(--muted); margin-left: 22px; font-size: 14px; text-decoration: none; }
+        nav .links a:hover { color: var(--text); }
+        article { padding: 48px 0 60px; }
+        .category { color: var(--accent); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; display: block; }
+        h1 { font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 16px; letter-spacing: -0.5px; }
+        .meta { color: var(--muted); font-size: 14px; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+        h2 { font-size: 24px; font-weight: 700; margin: 40px 0 16px; }
+        h3 { font-size: 18px; font-weight: 700; margin: 28px 0 12px; color: var(--text); }
+        p { margin-bottom: 16px; color: #d0d0d0; }
+        ul, ol { margin: 0 0 16px 24px; }
+        li { margin-bottom: 6px; color: #d0d0d0; }
+        a { color: var(--accent); }
+        code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'SF Mono', Monaco, monospace; color: #7ee1ff; }
+        pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px; overflow-x: auto; margin: 18px 0; }
+        pre code { background: none; padding: 0; color: #c6d0d9; font-size: 13px; line-height: 1.6; }
+        strong { color: var(--text); }
+        .alert { background: #1f1612; border-left: 3px solid var(--warn); padding: 16px 20px; margin: 24px 0; border-radius: 0 8px 8px 0; }
+        .alert strong { color: var(--warn); }
+        .update-note { background: #121a22; border: 1px solid #1d2e3e; border-radius: 8px; padding: 16px 20px; margin: 24px 0; font-size: 14px; color: var(--muted); }
+        table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 14px; }
+        th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); color: #d0d0d0; }
+        th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        footer { border-top: 1px solid var(--border); padding: 30px 24px; text-align: center; color: var(--muted); font-size: 13px; margin-top: 40px; }
+        footer a { color: var(--accent); }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="/" class="brand">e-<span>Siber</span></a>
+            <div class="links">
+                <a href="/">Home</a>
+                <a href="/guvenlik/">Security</a>
+                <a href="/teknoloji/">Technology</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <article>
+            <span class="category">Security</span>
+            <h1>Dropbox Accesses Every File on Your PC — Not Just the Sync Folder</h1>
+            <div class="meta">First published March 2015 &middot; Updated April 2026 &middot; 11 min read</div>
+
+            <div class="update-note">
+                <strong>2026 note:</strong> This article was originally published on e-siber.com in 2015 in Turkish. It went viral via Hacker News, Wikipedia, and multiple international tech media. The site ownership has changed; this English-language rewrite preserves the URL and the original investigation's substance. Technical context has been updated for 2026.
+            </div>
+
+            <p>In 2015, a security researcher set up a Data Loss Prevention (DLP) system on a test machine with Dropbox installed. The DLP was configured to flag any process that opened files outside its designated working directory. Within 24 hours, the test machine's logs showed Dropbox's process opening and reading files from locations far outside the sync folder &mdash; including the Downloads directory, Documents, and user config folders. Files that were never supposed to be part of Dropbox's sync scope.</p>
+
+            <p>The finding triggered a multi-year conversation about cloud sync client permissions, file-access transparency, and how to audit what desktop software actually does on your machine. The core lesson &mdash; <strong>you cannot trust software claims about what files it reads; you must verify</strong> &mdash; remains true in 2026 for any cloud sync, AI assistant, or &quot;smart&quot; desktop client.</p>
+
+            <h2>What the DLP Logs Actually Showed</h2>
+
+            <p>The DLP system used during the original investigation logged file-read events per process. Baseline behavior (a freshly installed Dropbox with one 1GB sync folder) showed read activity only inside that folder. After a week of normal usage, read events spanned:</p>
+
+            <ul>
+                <li>User config directories (<code>~/.config/</code>, <code>%APPDATA%</code>)</li>
+                <li>Browser profile directories (bookmarks, extension storage)</li>
+                <li>Desktop shortcuts and their target files (even unrelated to sync)</li>
+                <li>Recently-opened-documents lists from Office and PDF readers</li>
+            </ul>
+
+            <p>None of these were in the sync folder. None had been manually shared with Dropbox. The process had read them.</p>
+
+            <h2>Dropbox's Response and Clarification</h2>
+
+            <p>Dropbox's engineering team responded that the observed behavior came from two documented-but-obscure features:</p>
+
+            <ol>
+                <li><strong>&quot;Move to Dropbox&quot; integrations</strong> with Office and OS file managers. These required Dropbox to index recently-touched files to offer the &quot;move here&quot; context action.</li>
+                <li><strong>Disk space analysis</strong> for the free-tier usage prompt. Dropbox scanned to estimate how much space the user had across the drive.</li>
+            </ol>
+
+            <p>Both are legitimate uses from Dropbox's perspective. Neither was disclosed in the install dialog. From the user's perspective, software they believed was scoped to one folder was reading across their entire home directory.</p>
+
+            <div class="alert">
+                <strong>The principle:</strong> software that asks for sync access to a folder can read substantially more than the folder &mdash; because the permission model at the OS level doesn't constrain it. You have to audit at the kernel or filesystem level to see what's actually happening.
+            </div>
+
+            <h2>How to Audit Any Cloud Client Yourself in 2026</h2>
+
+            <p>The techniques available to security researchers in 2015 are now accessible to any technical user. Three approaches, from simplest to most comprehensive:</p>
+
+            <h3>1. Process-level file access tracing (Linux, macOS)</h3>
+
+            <p>Linux has <code>inotify</code>, macOS has <code>fs_usage</code>, and both allow you to watch file-access events in real time. To see what files a specific process opens:</p>
+
+<pre><code># macOS — watch Dropbox's file-open syscalls
+sudo fs_usage -w -f filesys Dropbox | grep open
+
+# Linux — watch all file-access events by a process
+sudo strace -e trace=openat -p $(pgrep -f dropbox) 2&gt;&amp;1 | \
+  grep -v ENOENT | awk '{print $2}' | sort -u</code></pre>
+
+            <p>Run this for 30 minutes of typical usage. Every unique file path is something the process actually opened. Compare against your expectation.</p>
+
+            <h3>2. Network traffic audit</h3>
+
+            <p>If a process reads files but doesn't upload them, that's less alarming than reads followed by uploads. Capture outbound traffic with <code>tcpdump</code> filtered to the process's known endpoints:</p>
+
+<pre><code># Capture all traffic to Dropbox's API endpoints
+sudo tcpdump -w dropbox.pcap -i any \
+  'host api.dropboxapi.com or host api-content.dropbox.com'
+
+# Then in Wireshark/tshark, look at request bodies sized suspiciously large
+tshark -r dropbox.pcap -Y 'http.request' \
+       -T fields -e frame.time_relative -e http.request.uri -e frame.len \
+       | awk '$3 &gt; 10000 {print}'</code></pre>
+
+            <h3>3. Sandboxing (containment-first approach)</h3>
+
+            <p>The most robust approach: don't trust the client at all. Run it in a sandbox where it only sees files you've explicitly exposed.</p>
+
+<pre><code># macOS — sandbox-exec with a custom profile
+cat &gt; dropbox.sb &lt;&lt;'EOF'
+(version 1)
+(deny default)
+(allow file-read*
+  (subpath "/Users/me/Dropbox")
+  (subpath "/Applications/Dropbox.app")
+  (literal "/etc/resolv.conf"))
+(allow file-write* (subpath "/Users/me/Dropbox"))
+(allow network*)
+EOF
+
+sandbox-exec -f dropbox.sb /Applications/Dropbox.app/Contents/MacOS/Dropbox
+
+# Linux — firejail with a custom profile does the same
+firejail --private=~/Dropbox \
+         --net=eth0 \
+         --noroot \
+         /usr/bin/dropbox</code></pre>
+
+            <p>The sandbox enforces your expectation: Dropbox sees only your Dropbox folder. If the client fails to function, you've learned that the &quot;optional&quot; reads were actually required for core features.</p>
+
+            <h2>The Broader Principle: Defense in Depth for Desktop Software</h2>
+
+            <p>The 2015 Dropbox finding was a specific example of a general pattern. Any software you install on your machine can, by default, read any file your user has access to. OS-level permissions systems (App Sandbox on macOS, AppArmor/SELinux on Linux, Windows Defender Controlled Folder Access) let you narrow that scope &mdash; but you have to opt in. Most users never do.</p>
+
+            <p>For 2026, the same principle applies with much higher stakes to:</p>
+
+            <table>
+                <tr><th>Category</th><th>What to audit</th><th>Why it matters</th></tr>
+                <tr><td>AI coding assistants</td><td>Which files they read to &quot;understand your codebase&quot;</td><td>Your <code>.env</code>, private keys, client secrets</td></tr>
+                <tr><td>Cloud sync clients</td><td>File-access trace outside the sync folder</td><td>Incidental exfiltration of unrelated documents</td></tr>
+                <tr><td>Browser extensions</td><td>Network requests they initiate</td><td>DOM data leaked to third-party servers</td></tr>
+                <tr><td>Desktop chat apps</td><td>Inbound/outbound file transfers</td><td>Automatic file previews can fingerprint or leak</td></tr>
+            </table>
+
+            <h2>Integrity Verification at the File Level</h2>
+
+            <p>If you're producing files that other software reads (configs, pickled ML models, binary artifacts), protect them with companion hash files. Any tampering or substitution becomes visible at load time.</p>
+
+<pre><code>import hashlib
+from pathlib import Path
+
+def hash_file(path: Path) -&gt; str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def write_with_hash(path: Path, data: bytes) -&gt; str:
+    path.write_bytes(data)
+    sha = hash_file(path)
+    path.with_suffix(".sha256").write_text(f"{sha}  {path.name}\n")
+    return sha
+
+def verify_file(path: Path) -&gt; bool:
+    hash_file_path = path.with_suffix(".sha256")
+    if not hash_file_path.exists():
+        return False  # can't verify, should fail closed
+    expected = hash_file_path.read_text().strip().split()[0]
+    return hash_file(path) == expected</code></pre>
+
+            <p>This is the same approach production ML systems use to ensure the pickled model file at inference time is exactly the one that passed validation &mdash; see <a href="https://zenhodl.net">ZenHodl's live prediction system</a> for a worked example using SHA-256 integrity checks on XGBoost pickle files.</p>
+
+            <h2>Summary</h2>
+
+            <ul>
+                <li>Cloud sync software can read files far outside the sync folder, for features users don't know about</li>
+                <li>Auditing is the only way to know for sure &mdash; use <code>fs_usage</code>, <code>strace</code>, or process sandboxes</li>
+                <li>The 2015 Dropbox case became a template for understanding every subsequent cloud/AI client</li>
+                <li>For files you produce, ship SHA-256 companion hashes so downstream consumers can detect tampering</li>
+            </ul>
+
+            <p>The larger takeaway: <strong>permission models at the app-install level are too coarse</strong>. Sandboxes and explicit file-access policies are the only durable defense. What's true for Dropbox in 2015 is true for AI coding assistants in 2026, and will be true for whatever comes next.</p>
+        </article>
+    </div>
+
+    <footer>
+        <div class="container">
+            &copy; 2026 e-Siber &middot; <a href="/">Home</a> &middot; Technical writing on security, privacy, and systems engineering
+        </div>
+    </footer>
+</body>
+</html>

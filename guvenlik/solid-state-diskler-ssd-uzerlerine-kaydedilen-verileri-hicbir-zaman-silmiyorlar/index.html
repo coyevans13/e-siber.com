@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSDs Don&apos;t Actually Delete Your Data | e-Siber</title>
+    <meta name="description" content="Why deleting or even wiping files on an SSD doesn&apos;t guarantee the data is gone. Wear-leveling, over-provisioning, and what secure erase actually does.">
+    <meta name="keywords" content="SSD secure erase, wear leveling, flash memory, data remanence, TRIM, forensics">
+    <link rel="canonical" href="https://e-siber.com/guvenlik/solid-state-diskler-ssd-uzerlerine-kaydedilen-verileri-hicbir-zaman-silmiyorlar/">
+    <meta property="og:title" content="SSDs Don&apos;t Actually Delete Your Data">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://e-siber.com/guvenlik/solid-state-diskler-ssd-uzerlerine-kaydedilen-verileri-hicbir-zaman-silmiyorlar/">
+    <style>
+        :root { --bg: #0b0d10; --card: #15181d; --border: #262a30; --text: #e6e6e6; --muted: #8b8d92; --accent: #5ac8fa; --warn: #ff9500; --danger: #ff3b30; --code-bg: #0d1117; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.8; }
+        .container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+        nav { border-bottom: 1px solid var(--border); background: #0a0b0e; padding: 16px 0; position: sticky; top: 0; z-index: 10; }
+        nav .container { display: flex; justify-content: space-between; align-items: center; }
+        nav .brand { font-weight: 800; font-size: 18px; color: var(--text); text-decoration: none; letter-spacing: -0.3px; }
+        nav .brand span { color: var(--accent); }
+        nav .links a { color: var(--muted); margin-left: 22px; font-size: 14px; text-decoration: none; }
+        nav .links a:hover { color: var(--text); }
+        article { padding: 48px 0 60px; }
+        .category { color: var(--accent); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; display: block; }
+        h1 { font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 16px; letter-spacing: -0.5px; }
+        .meta { color: var(--muted); font-size: 14px; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+        h2 { font-size: 24px; font-weight: 700; margin: 40px 0 16px; }
+        h3 { font-size: 18px; font-weight: 700; margin: 28px 0 12px; color: var(--text); }
+        p { margin-bottom: 16px; color: #d0d0d0; }
+        ul, ol { margin: 0 0 16px 24px; }
+        li { margin-bottom: 6px; color: #d0d0d0; }
+        a { color: var(--accent); }
+        code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'SF Mono', Monaco, monospace; color: #7ee1ff; }
+        pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px; overflow-x: auto; margin: 18px 0; }
+        pre code { background: none; padding: 0; color: #c6d0d9; font-size: 13px; line-height: 1.6; }
+        strong { color: var(--text); }
+        .alert { background: #1f1612; border-left: 3px solid var(--warn); padding: 16px 20px; margin: 24px 0; border-radius: 0 8px 8px 0; }
+        .alert strong { color: var(--warn); }
+        .update-note { background: #121a22; border: 1px solid #1d2e3e; border-radius: 8px; padding: 16px 20px; margin: 24px 0; font-size: 14px; color: var(--muted); }
+        table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 14px; }
+        th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); color: #d0d0d0; }
+        th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        footer { border-top: 1px solid var(--border); padding: 30px 24px; text-align: center; color: var(--muted); font-size: 13px; margin-top: 40px; }
+        footer a { color: var(--accent); }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="/" class="brand">e-<span>Siber</span></a>
+            <div class="links">
+                <a href="/">Home</a>
+                <a href="/guvenlik/">Security</a>
+                <a href="/teknoloji/">Technology</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <article>
+            <span class="category">Security</span>
+            <h1>SSDs Don&apos;t Actually Delete the Data You Think They&apos;re Deleting</h1>
+            <div class="meta">First published 2015 &middot; Updated April 2026 &middot; 10 min read</div>
+
+            <div class="update-note">
+                <strong>2026 note:</strong> The original Turkish version of this article ran on e-siber.com circa 2015 and was widely referenced as flash forensics became mainstream. The domain has changed hands; this English rewrite preserves the canonical URL and extends the original analysis with current controller behavior and NVMe-specific guidance.</div>
+
+            <p>Here is a deeply uncomfortable fact about solid-state drives: when you delete a file, overwrite it, even run &quot;secure erase&quot; utilities built for spinning disks &mdash; <strong>the data you think you destroyed is very likely still sitting on the flash chips.</strong> Not because the SSD is broken. Because that is precisely what a modern SSD is designed to do.</p>
+
+            <p>This has real consequences when you sell a laptop, return a leased server, or discard an encrypted phone. &quot;I wiped it&quot; means something different for SSDs than it does for hard drives, and most people &mdash; including IT departments &mdash; get it wrong.</p>
+
+            <h2>Why Hard-Drive Intuition Fails on Flash</h2>
+
+            <p>On a traditional spinning disk, writing zeros to a sector physically flips the magnetic domains at that sector. If you overwrite every sector on the disk, every bit of user data is gone. The <code>dd if=/dev/zero of=/dev/sda</code> approach worked because the logical address you wrote to and the physical location being written to were the same.</p>
+
+            <p>SSDs break that assumption in three ways.</p>
+
+            <h3>1. Wear leveling</h3>
+
+            <p>Flash memory cells wear out after a finite number of program/erase cycles (3,000&ndash;100,000 depending on cell type). To extend drive life, the controller spreads writes evenly across all cells. When you overwrite the file at logical block 42, the controller doesn&apos;t reuse the cell that previously held LBA 42 &mdash; it writes the new data to a fresher cell somewhere else and updates an internal mapping table.</p>
+
+            <p>The original cell still contains your old data. It&apos;s just not mapped to any LBA anymore. From the OS&apos;s perspective it&apos;s gone. From the controller&apos;s perspective it&apos;s a &quot;stale&quot; block waiting to be garbage-collected at some future time. From a forensic analyst with a chip-off setup, it&apos;s fully recoverable.</p>
+
+            <h3>2. Over-provisioning</h3>
+
+            <p>Every SSD ships with more physical NAND than its advertised capacity. A &quot;1 TB&quot; SSD typically has 1.1 TB of actual flash. That extra 10% is invisible to the OS. It exists so the controller has spare blocks for wear leveling, bad-block remapping, and background garbage collection.</p>
+
+            <p>Your OS cannot address those blocks. Filling the drive with zeros using <code>dd</code> does not touch them. Data that was once stored in a block later demoted to the spare pool is not overwritten by user-level wipes.</p>
+
+            <h3>3. Compression and dedup</h3>
+
+            <p>Some controllers compress data before writing. If you write a 1 MB file of random data, the controller stores 1 MB. If you then overwrite it with 1 MB of zeros, the controller may store a 64-byte metadata entry indicating &quot;this LBA range is zero&quot; and leave the original 1 MB block physically untouched until a future garbage collection pass.</p>
+
+            <div class="alert">
+                <strong>The net effect:</strong> &quot;Overwrite with zeros&quot; is a trustworthy destruction method on HDDs and completely unreliable on SSDs. You can write zeros across the entire addressable space and have gigabytes of old data still present on the flash.</div>
+
+            <h2>What TRIM Actually Does</h2>
+
+            <p>When the OS tells the SSD that a block is free (via the <code>TRIM</code> command), the controller is permitted to mark those cells as erasable. Many controllers eventually do erase them during background garbage collection. But:</p>
+
+            <ul>
+                <li>TRIM is asynchronous. The actual erase may happen minutes, hours, or days later &mdash; if ever.</li>
+                <li>TRIM only affects blocks the filesystem considers free. Blocks that were &quot;deleted&quot; but not passed through TRIM (some RAID configurations, some older file systems, encrypted volumes) are untouched.</li>
+                <li>Different controllers implement TRIM differently. Some zero the blocks immediately, some mark them for future collection, some ignore TRIM entirely.</li>
+            </ul>
+
+            <p>You cannot depend on TRIM for secure erase. It&apos;s a performance optimization that has privacy side effects, not a security tool.</p>
+
+            <h2>What Actually Works</h2>
+
+            <p>Two approaches are reliable. One is physical. One is cryptographic.</p>
+
+            <h3>ATA Secure Erase / NVMe Format with crypto-erase</h3>
+
+            <p>Modern SSDs implement a controller-level command that, when it works, does the right thing. On SATA SSDs this is <code>HDPARM --security-erase</code>. On NVMe it&apos;s <code>nvme format --ses=2</code> (cryptographic erase). The controller has direct access to all physical cells including over-provisioning and can zero them in one operation.</p>
+
+            <p>On NVMe on Linux:</p>
+
+            <pre><code># Show drive info:
+sudo nvme id-ctrl /dev/nvme0 | grep -i crypto
+
+# Crypto-erase (destroys the encryption key; all data becomes
+# ciphertext with no key = effectively random):
+sudo nvme format /dev/nvme0n1 --ses=2
+
+# User data erase (cells physically erased):
+sudo nvme format /dev/nvme0n1 --ses=1</code></pre>
+
+            <p>On SATA:</p>
+
+            <pre><code>sudo hdparm -I /dev/sda | grep -i security
+sudo hdparm --user-master u --security-set-pass p /dev/sda
+sudo hdparm --user-master u --security-erase p /dev/sda</code></pre>
+
+            <p><strong>Caveat:</strong> the quality of this implementation varies dramatically by vendor. Several academic studies &mdash; most famously the 2011 UCSD paper &quot;Reliably Erasing Data From Flash-Based SSDs&quot; &mdash; found that many consumer SSDs do not actually execute secure erase correctly and leave user data intact. Verify on your specific model before trusting it.</p>
+
+            <h3>Full-disk encryption from the start</h3>
+
+            <p>The most reliable pattern: encrypt the SSD from day one with a strong key you control, and when you want to &quot;wipe&quot; it, destroy the key. The data on the flash remains, but without the key it is indistinguishable from random bytes.</p>
+
+            <ul>
+                <li>macOS: FileVault (on by default for Apple Silicon)</li>
+                <li>Linux: LUKS / dm-crypt</li>
+                <li>Windows: BitLocker</li>
+                <li>ChromeOS: encrypted by default</li>
+            </ul>
+
+            <p>Under this model, &quot;wiping the drive&quot; is a 1-second operation: rotate the key. The crypto-erase option above is the vendor&apos;s implementation of the same pattern &mdash; SSDs that advertise SED (Self-Encrypting Drive) encrypt all writes transparently and invalidate the DEK on <code>--ses=2</code>.</p>
+
+            <h3>Physical destruction</h3>
+
+            <p>For drives that held data subject to strict regulatory regimes (medical, legal, classified), the safest option remains shredding or incineration by a certified vendor. NIST SP 800-88r1 describes the acceptable methods. The chip-off forensic recovery threshold is high but not infinite, and for high-sensitivity data it is typically treated as the default assumption.</p>
+
+            <h2>Verifying That Erase Actually Worked</h2>
+
+            <p>After running a secure erase, read the raw device and check that the read pattern matches what the controller claims to have written (usually all zeros, sometimes all ones):</p>
+
+            <pre><code># Read the first 1 GB and check for non-zero bytes:
+sudo dd if=/dev/nvme0n1 bs=1M count=1024 2&gt;/dev/null | \
+    tr -d '\0' | wc -c
+
+# Should print 0 if the erase worked. Non-zero = controller lied
+# or crypto-erase left some metadata region intact.</code></pre>
+
+            <p>For paranoia, sample random LBAs across the entire range:</p>
+
+            <pre><code>DEV=/dev/nvme0n1
+SIZE=$(sudo blockdev --getsz $DEV)
+for i in $(seq 1 20); do
+    OFF=$((RANDOM * RANDOM % SIZE))
+    sudo dd if=$DEV bs=512 count=1 skip=$OFF 2&gt;/dev/null | \
+        xxd | head -2
+done</code></pre>
+
+            <p>Any non-zero block after a successful zero-erase means the controller did not do what it told you it did.</p>
+
+            <h2>A Note About Phones</h2>
+
+            <p>Modern iPhones and Android phones are full-disk encrypted from day one with a hardware-derived key. &quot;Erase all content and settings&quot; is the same pattern as SSD crypto-erase: the key is destroyed and the flash contents become unrecoverable by any tool that respects cryptography.</p>
+
+            <p>This is why factory reset on a modern phone is trustworthy in a way that dragging files to Trash on a desktop is not.</p>
+
+            <h2>The Broader Pattern: Trust, But Verify</h2>
+
+            <p>SSDs, messengers, cloud sync clients, and ML models all share a common failure mode: <strong>the interface exposes a clean abstraction, and underneath, the reality is more complicated than the interface implies.</strong></p>
+
+            <p>&quot;Delete this file.&quot; &quot;Encrypt this message.&quot; &quot;Predict this probability.&quot; In each case, the claim at the interface is only as reliable as the measurement regime behind it. When we build production systems at <a href="https://zenhodl.net?ref=e-siber" rel="noopener">ZenHodl</a>, we treat vendor claims the same way we treat SSD &quot;secure erase&quot;: assume it&apos;s partially true, verify the bits, log the verification, and alert when the assumption breaks. The calibration pipeline runs every night and emits a report; the model artifacts are SHA-256 hashed before loading; the trades that feed model monitoring are replayed against the live predictions and checked for drift.</p>
+
+            <p>The security lesson transfers directly to infrastructure: the label on the box is not the behavior in production. Measure, don&apos;t assume.</p>
+
+            <h2>Further Reading</h2>
+
+            <ul>
+                <li>Wei, Grupp, Spada, Swanson &mdash; &quot;Reliably Erasing Data From Flash-Based Solid State Drives&quot; &mdash; FAST 2011</li>
+                <li>NIST SP 800-88 Rev. 1 &mdash; Guidelines for Media Sanitization</li>
+                <li>NVMe Specification &mdash; Format NVM command, Secure Erase Settings</li>
+                <li>Linux <code>hdparm</code> and <code>nvme-cli</code> man pages</li>
+            </ul>
+
+        </article>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 e-Siber. Turkish cybersecurity archive, now publishing in English.</p>
+            <p style="margin-top: 8px;">Original 2015 Turkish content preserved where the URL carries editorial value. Current production-ML work at <a href="https://zenhodl.net?ref=e-siber" rel="noopener">ZenHodl</a>.</p>
+        </div>
+    </footer>
+</body>
+</html>
